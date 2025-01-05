@@ -20,7 +20,7 @@ Before using this pipeline, ensure the following are set up:
 AWS ECR Repository:
 > Replace docker/my-ecr-repo with your ECR repository name in the workflow.
 AWS IAM Role:
-> Ensure the IAM role arn:aws:iam::376129844985:role/<your-role-name> exists and has permissions to interact with ECR.
+> Ensure the IAM role arn:aws:iam::376129844985:role/github-actions-cicd exists and has permissions to interact with ECR.
 
 GitHub Secrets:
 Add the following secrets to your repository:
