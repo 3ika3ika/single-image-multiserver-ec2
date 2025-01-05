@@ -1,0 +1,24 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Action": "ecr:GetAuthorizationToken",
+			"Resource": "*"
+		},
+		{
+			"Effect": "Allow",
+			"Action": [
+				"ecr:BatchGetImage",
+				"ecr:BatchCheckLayerAvailability",
+				"ecr:GetDownloadUrlForLayer"
+			],
+			"Resource": "arn:aws:ecr:eu-west-2:376129844985:repository/docker/my-ecr-repo"
+		},
+		{
+			"Effect": "Allow",
+			"Action": "ec2:*",
+			"Resource": "*"
+		}
+	]
+}
