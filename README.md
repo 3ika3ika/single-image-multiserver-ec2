@@ -55,8 +55,7 @@ git add .
 git commit -m "My First Commit"
 git push -u origin main
 ```
-**Make sure to reference the correct github repo  within files in IAM roles (permissions, trust pocilicies) as well as in the ci-cd-pipeline.yaml file itself.**
+## **Make sure to reference the correct github repo  within files in IAM roles folder (permissions, trust pocilicies) as well as in the ci-cd-pipeline.yaml file itself.**
 
-This workflow provides an automated, robust pipeline to build, push, and deploy Docker images. Customize it as needed to fit your specific infrastructure and deployment requirements.
 
 Let me know if you'd like additional details or modifications!
