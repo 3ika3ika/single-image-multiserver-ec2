@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  nginx:
+    build:
+      context: .
+    image: general-web-app
+    container_name: general-web-app
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/nginx.conf:ro

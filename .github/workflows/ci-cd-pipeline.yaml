@@ -1,0 +1,133 @@
+name: CI/CD Pipeline for Docker Image
+
+on:
+  push:
+    branches:
+      - main # Trigger workflow on push to the main branch
+  pull_request:
+    branches:
+      - main # Trigger workflow on PR to the main branch
+
+env:
+  PRIVATE_SSH_KEY: ${{secrets.PRIVATE_SSH_KEY}}
+
+
+permissions:
+    id-token: write
+    contents: read 
+
+jobs:
+  build_and_push:
+    runs-on: ubuntu-latest
+    
+    steps:
+    # Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Set up Docker Buildx (optional, for advanced features)
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    # AWS mandatory block     
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::376129844985:role/github-actions-cicd
+        aws-region: eu-west-2  # Specify your AWS region here
+
+    # Log in to AWS ECR
+    - name: Log in to Amazon ECR
+      id: login-ecr 
+      uses: aws-actions/amazon-ecr-login@v2
+      with:
+        mask-password: false
+    
+    # Build Docker image and tag it
+    - name: Build, tag, and push docker image to Amazon ECR
+      env:
+        REGISTRY: ${{ steps.login-ecr.outputs.registry }}  # Dynamically populated    
+        REPOSITORY: docker/my-ecr-repo
+        IMAGE_TAG: ${{ github.ref_name }}-${{ github.run_number }}-${{ github.sha }} # Dynamically populated   
+
+      run: |
+       
+       docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
+       docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+
+    # - name: Retrieve EC2 Public IP
+    #   id: get-ip
+    #   run: |
+    #     SERVER_PUBLIC_IP=$(aws ec2 describe-instances \
+    #       --filters "Name=i-002ac39e62b3c28ac,Values=my-ec2-instance" \
+    #       --query "Reservations[0].Instances[0].PublicIpAddress" \
+    #       --output text)
+    #     echo "SERVER_PUBLIC_IP=$SERVER_PUBLIC_IP" >> $GITHUB_ENV
+
+    - name: List files in the workspace
+      run: ls -la ./
+
+    - name: Create an archive
+      run: tar -czf deployment.tar.gz docker-compose.yaml
+    
+    - name: Use scp-action to transfer archive
+      uses: appleboy/scp-action@v0.1.3
+      with:
+        host: ec2-18-171-204-143.eu-west-2.compute.amazonaws.com
+        username: ec2-user
+        key: ${{ secrets.PRIVATE_SSH_KEY }}
+        source: ./deployment.tar.gz
+        target: /home/ec2-user/
+
+    - name: SSH into EC2 to unpack files
+      uses: appleboy/ssh-action@master
+      with:
+        host: ec2-18-171-204-143.eu-west-2.compute.amazonaws.com
+        username: ec2-user
+        key: ${{ secrets.PRIVATE_SSH_KEY }}
+        script: |
+          cd /home/ec2-user/
+          tar -xzf deployment.tar.gz
+
+    # Deploy Docker image to EC2 instance    
+    - name: Deploy docker image to EC2
+      env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}  # Dynamically populated    
+          REPOSITORY: docker/my-ecr-repo
+          IMAGE_TAG: ${{ github.ref_name }}-${{ github.run_number }}-${{ github.sha }} # Dynamically populated   
+          AWS_DEFAULT_REGION: eu-west-2
+          
+
+      uses: appleboy/ssh-action@master
+      with:
+        host: ec2-18-171-204-143.eu-west-2.compute.amazonaws.com
+        username: ec2-user
+        key: ${{env.PRIVATE_SSH_KEY}}
+        envs: PRIVATE_SSH_KEY, REGISTRY, REPOSITORY, IMAGE_TAG, AWS_DEFAULT_REGION
+        script: |-
+
+          sudo yum update -y
+          sudo yum install docker -y
+          sudo service docker start
+          sudo chkconfig docker on
+
+          sudo systemctl start docker
+          sudo systemctl enable docker
+
+          sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          
+          sudo aws ecr get-login-password --region eu-west-2 | sudo docker login --username AWS --password-stdin 376129844985.dkr.ecr.eu-west-2.amazonaws.com
+          sudo docker-compose down
+          sudo echo "REGISTRY=$REGISTRY" > .env
+          sudo echo "REPOSITORY=$REPOSITORY" >> .env
+          sudo echo "IMAGE_TAG=$IMAGE_TAG" >> .env
+          sudo docker pull 376129844985.dkr.ecr.eu-west-2.amazonaws.com/$REGISTRY/$REPOSITORY:$IMAGE_TAG
+          sudo docker-compose -f docker-compose.yaml up -d
+
+
+
+

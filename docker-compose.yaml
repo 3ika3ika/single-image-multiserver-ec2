@@ -1,0 +1,6 @@
+services:
+  nginx:
+    image: "${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}" # Use the pre-built image (either local or from a registry)
+    container_name: general-web-app
+    ports:
+      - "80:80"
