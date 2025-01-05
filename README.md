@@ -36,6 +36,26 @@ EC2 Instance:
 AWS Region:
 > Update the aws-region and AWS_DEFAULT_REGION values to match your region.
 
+## How to use
+
+```bash
+git clone https://github.com/3ika3ika/single-image-multiserver-ec2.git
+```
+```bash
+cd single-image-multiserver-ec2
+```
+```bash
+gh auth login 
+gh repo create <my-github-repo> --private --description "My New Repo"
+gh remote -v
+gh remote remove origin
+git remote add origin https://github.com/3ika3ika/single-image-multiserver-ec2.git
+git init
+git add .
+git commit -m "My First Commit"
+git push -u origin main
+```
+**Make sure to reference the correct github repo  within files in IAM roles (permissions, trust pocilicies) as well as in the ci-cd-pipeline.yaml file itself.**
 
 This workflow provides an automated, robust pipeline to build, push, and deploy Docker images. Customize it as needed to fit your specific infrastructure and deployment requirements.
 
